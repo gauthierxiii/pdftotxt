@@ -1,15 +1,16 @@
-# app.py
 from flask import Flask, request, jsonify
-import fitz  # PyMuPDF
+import pdfplumber
 
 app = Flask(__name__)
 
 @app.route('/extract-text', methods=['POST'])
 def extract_text():
     file = request.files['file']
-    pdf = fitz.open(stream=file.read(), filetype="pdf")
-    text = "\n".join(page.get_text() for page in pdf)
-    return jsonify({"text": text})
+    with pdfplumber.open(file) as pdf:
+        text = '\n'.join([page.extract_text() or '' for page in pdf.pages])
+    return jsonify({'text': text.strip()})
 
 if __name__ == '__main__':
-    app.run()
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
